@@ -1,0 +1,6 @@
+[Unit]
+Description=Sync fcitx5 DMS theme from DankMaterialShell colors
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/fcitx5-dms-theme-sync

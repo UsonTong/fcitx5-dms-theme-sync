@@ -1,0 +1,264 @@
+#!/usr/bin/env python3
+import re
+import shutil
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+home = Path.home()
+source = home / ".config/DankMaterialShell/firefox.css"
+themes_root = home / ".local/share/fcitx5/themes"
+classicui = home / ".config/fcitx5/conf/classicui.conf"
+state_dir = home / ".local/state/fcitx5-dms-theme-sync"
+stamp = state_dir / "last-run"
+
+fallback = {
+    "primary": "#a4c9fe",
+    "on-primary": "#00315c",
+    "primary-container": "#1f4876",
+    "on-primary-container": "#d3e3ff",
+    "on-surface": "#e1e2e9",
+    "on-surface-variant": "#c3c6cf",
+    "surface-container": "#1d2024",
+    "surface-container-high": "#272a2f",
+    "surface-container-highest": "#32353a",
+    "outline-variant": "#43474e",
+}
+
+
+def should_debounce():
+    state_dir.mkdir(parents=True, exist_ok=True)
+    now = time.time()
+    try:
+        last = float(stamp.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ValueError):
+        last = 0
+    stamp.write_text(str(now), encoding="utf-8")
+    return now - last < 1
+
+
+def extract_dark_vars(text):
+    marker = "@media (prefers-color-scheme: dark)"
+    start = text.find(marker)
+    block = text[start:] if start != -1 else text
+    colors = fallback.copy()
+    for name, value in re.findall(r"--md-sys-color-([a-z0-9-]+):\s*(#[0-9a-fA-F]{6,8})\s*;", block):
+        if name in colors:
+            colors[name] = value.lower()
+    return colors
+
+
+def current_theme_name():
+    if not classicui.exists():
+        return "dms-rounded-dark-a"
+    match = re.search(r"^Theme=(.+)$", classicui.read_text(encoding="utf-8"), re.MULTILINE)
+    return match.group(1).strip() if match else "dms-rounded-dark-a"
+
+
+def next_theme_name():
+    return "dms-rounded-dark-b" if current_theme_name() == "dms-rounded-dark-a" else "dms-rounded-dark-a"
+
+
+def run(*args):
+    subprocess.run(args, check=True)
+
+
+def rounded_png(path, size, fill, stroke=None, stroke_width=0, radius=16):
+    width, height = size
+    cmd = ["magick", "-size", f"{width}x{height}", "xc:none", "-fill", fill]
+    if stroke and stroke_width:
+        cmd += ["-stroke", stroke, "-strokewidth", str(stroke_width)]
+    else:
+        cmd += ["-stroke", "none"]
+    cmd += ["-draw", f"roundrectangle 0,0 {width - 1},{height - 1} {radius},{radius}", str(path)]
+    run(*cmd)
+
+
+def write_theme(theme_name, colors):
+    theme_dir = themes_root / theme_name
+    theme_dir.mkdir(parents=True, exist_ok=True)
+    for asset in ("arrow.png", "next.png", "prev.png", "radio.png"):
+        target = theme_dir / asset
+        if not target.exists():
+            shutil.copyfile(Path("/usr/share/fcitx5/themes/default-dark") / asset, target)
+
+    rounded_png(theme_dir / "panel.png", (72, 52), colors["surface-container"], colors["outline-variant"], 1, 16)
+    rounded_png(theme_dir / "menu.png", (72, 52), colors["surface-container-high"], colors["outline-variant"], 1, 16)
+    rounded_png(theme_dir / "highlight.png", (48, 28), colors["primary-container"], None, 0, 12)
+    rounded_png(theme_dir / "preedit.png", (48, 28), colors["surface-container-highest"], None, 0, 12)
+
+    (theme_dir / "theme.conf").write_text(f"""[Metadata]
+Name={theme_name}
+Name[zh_CN]=DMS 圆角深色
+Version=1
+Author=Claude
+Description=Compact rounded dark Material 3 theme generated from DankMaterialShell colors
+ScaleWithDPI=True
+
+[InputPanel]
+NormalColor={colors['on-surface']}
+HighlightCandidateColor={colors['on-primary-container']}
+HighlightColor={colors['primary']}
+HighlightBackgroundColor={colors['primary-container']}
+PageButtonAlignment=Last Candidate
+
+[InputPanel/TextMargin]
+Left=6
+Right=6
+Top=4
+Bottom=4
+
+[InputPanel/ContentMargin]
+Left=8
+Right=8
+Top=6
+Bottom=6
+
+[InputPanel/Background]
+Image=panel.png
+Color={colors['surface-container']}
+BorderColor=#00000000
+BorderWidth=0
+
+[InputPanel/Background/Margin]
+Left=16
+Right=16
+Top=16
+Bottom=16
+
+[InputPanel/Highlight]
+Image=highlight.png
+Color={colors['primary-container']}
+
+[InputPanel/Highlight/Margin]
+Left=12
+Right=12
+Top=12
+Bottom=12
+
+[InputPanel/PrevPage]
+Image=prev.png
+
+[InputPanel/PrevPage/ClickMargin]
+Left=4
+Right=4
+Top=3
+Bottom=3
+
+[InputPanel/NextPage]
+Image=next.png
+
+[InputPanel/NextPage/ClickMargin]
+Left=4
+Right=4
+Top=3
+Bottom=3
+
+[Menu]
+NormalColor={colors['on-surface']}
+HighlightCandidateColor={colors['on-primary-container']}
+
+[Menu/Background]
+Image=menu.png
+Color={colors['surface-container-high']}
+BorderColor=#00000000
+BorderWidth=0
+
+[Menu/Background/Margin]
+Left=16
+Right=16
+Top=16
+Bottom=16
+
+[Menu/ContentMargin]
+Left=8
+Right=8
+Top=6
+Bottom=6
+
+[Menu/CheckBox]
+Image=radio.png
+
+[Menu/SubMenu]
+Image=arrow.png
+
+[Menu/Highlight]
+Image=highlight.png
+Color={colors['primary-container']}
+
+[Menu/Highlight/Margin]
+Left=12
+Right=12
+Top=12
+Bottom=12
+
+[Menu/Separator]
+Color={colors['outline-variant']}
+
+[Menu/TextMargin]
+Left=6
+Right=6
+Top=4
+Bottom=4
+
+[AccentColorField]
+0=Input Panel Border
+1=Input Panel Highlight Candidate Background
+2=Input Panel Highlight
+3=Menu Border
+4=Menu Separator
+5=Menu Selected Item Background
+""", encoding="utf-8")
+
+
+def ensure_classicui(theme_name):
+    if not classicui.exists():
+        return
+    text = classicui.read_text(encoding="utf-8")
+    replacements = {
+        r"^Font=.*$": 'Font="Sans 11"',
+        r"^MenuFont=.*$": 'MenuFont="Sans 11"',
+        r"^Theme=.*$": f"Theme={theme_name}",
+        r"^DarkTheme=.*$": f"DarkTheme={theme_name}",
+        r"^UseDarkTheme=.*$": "UseDarkTheme=True",
+        r"^UseAccentColor=.*$": "UseAccentColor=False",
+    }
+    for pattern, repl in replacements.items():
+        text = re.sub(pattern, repl, text, flags=re.MULTILINE)
+    classicui.write_text(text, encoding="utf-8")
+
+
+def reload_classicui():
+    if shutil.which("gdbus"):
+        subprocess.run([
+            "gdbus", "call", "--session", "--dest", "org.fcitx.Fcitx5",
+            "--object-path", "/controller", "--method",
+            "org.fcitx.Fcitx.Controller1.ReloadAddonConfig", "classicui",
+        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if shutil.which("fcitx5-remote"):
+        subprocess.run(["fcitx5-remote", "--check", "-r"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def main():
+    if should_debounce():
+        print("Skipped duplicate theme sync trigger")
+        return 0
+    time.sleep(0.3)
+    if not source.exists():
+        print(f"Missing DMS color source: {source}", file=sys.stderr)
+        return 1
+    if not shutil.which("magick"):
+        print("Missing ImageMagick 'magick' command", file=sys.stderr)
+        return 1
+    theme_name = next_theme_name()
+    colors = extract_dark_vars(source.read_text(encoding="utf-8", errors="replace"))
+    write_theme(theme_name, colors)
+    ensure_classicui(theme_name)
+    reload_classicui()
+    print(f"Synced {theme_name} from {source}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

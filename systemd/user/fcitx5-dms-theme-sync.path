@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch DMS colors and sync fcitx5 theme
+
+[Path]
+PathChanged=%h/.config/DankMaterialShell/firefox.css
+Unit=fcitx5-dms-theme-sync.service
+
+[Install]
+WantedBy=default.target
