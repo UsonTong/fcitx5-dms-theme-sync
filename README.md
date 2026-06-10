@@ -64,15 +64,15 @@ systemctl --user disable --now fcitx5-dms-theme-sync.path
 
 ## Fractional scaling artifact policy
 
-For Wayland fractional scaling such as 1.25x, this generator avoids image-backed selected-candidate highlights. The panel and menu keep transparent outer rounded corners, but candidate/menu highlights are rendered by fcitx5 as solid colors instead of stretched PNG assets.
+For Wayland fractional scaling such as 1.25x, selected-candidate highlights use a seam-safe rounded PNG: a `64x32` capsule with 9-slice margins placed inside fully opaque pixels (`Left/Right=18`, `Top/Bottom=15`). The generator also draws an explicit solid center strip before drawing the capsule, so the stretched seams do not pass through antialiased transparent pixels.
 
-This prevents compositor resampling from picking up transparent or panel-colored pixels at the highlighted candidate boundary. The dynamic color path is unchanged: colors still come from `~/.config/DankMaterialShell/firefox.css`, and the A/B theme slot reload strategy is preserved.
+This preserves rounded selected-candidate highlights while reducing compositor resampling artifacts at candidate boundaries. The dynamic color path is unchanged: colors still come from `~/.config/DankMaterialShell/firefox.css`, and the A/B theme slot reload strategy is preserved.
 
 If artifacts are still visible at 1.25x, prefer these safe adjustments in order:
 
-1. Keep selected-candidate highlights color-only rather than PNG-backed.
-2. Reduce outer panel/menu corner radius a little, rather than removing roundness.
-3. Increase panel/menu asset size and keep 9-slice margins away from antialiased corner edges.
+1. Increase highlight side margins further so 9-slice seams stay inside fully opaque pixels.
+2. Reduce highlight corner radius a little, rather than removing roundness.
+3. As a last resort, switch selected-candidate highlights back to color-only rendering.
 
 ## Notes
 
