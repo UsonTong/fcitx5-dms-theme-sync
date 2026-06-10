@@ -86,8 +86,6 @@ def write_theme(theme_name, colors):
 
     rounded_png(theme_dir / "panel.png", (96, 72), colors["surface-container"], colors["outline-variant"], 1, 18)
     rounded_png(theme_dir / "menu.png", (96, 72), colors["surface-container-high"], colors["outline-variant"], 1, 18)
-    rounded_png(theme_dir / "highlight.png", (64, 36), colors["primary-container"], None, 0, 14, background=colors["surface-container"])
-    rounded_png(theme_dir / "menu-highlight.png", (64, 36), colors["primary-container"], None, 0, 14, background=colors["surface-container-high"])
     rounded_png(theme_dir / "preedit.png", (64, 36), colors["surface-container-highest"], None, 0, 14, background=colors["surface-container"])
 
     (theme_dir / "theme.conf").write_text(f"""[Metadata]
@@ -130,14 +128,13 @@ Top=18
 Bottom=18
 
 [InputPanel/Highlight]
-Image=highlight.png
 Color={colors['primary-container']}
 
 [InputPanel/Highlight/Margin]
-Left=10
-Right=10
-Top=10
-Bottom=10
+Left=0
+Right=0
+Top=0
+Bottom=0
 
 [InputPanel/PrevPage]
 Image=prev.png
@@ -186,14 +183,13 @@ Image=radio.png
 Image=arrow.png
 
 [Menu/Highlight]
-Image=menu-highlight.png
 Color={colors['primary-container']}
 
 [Menu/Highlight/Margin]
-Left=10
-Right=10
-Top=10
-Bottom=10
+Left=0
+Right=0
+Top=0
+Bottom=0
 
 [Menu/Separator]
 Color={colors['outline-variant']}
