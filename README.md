@@ -62,6 +62,18 @@ systemctl --user status fcitx5-dms-theme-sync.service
 systemctl --user disable --now fcitx5-dms-theme-sync.path
 ```
 
+## Fractional scaling artifact policy
+
+For Wayland fractional scaling such as 1.25x, this generator avoids transparent pixels on internal highlight assets. The panel and menu keep transparent outer rounded corners, but highlight/preedit assets are rendered on top of their matching panel/menu background color instead of `xc:none`.
+
+This prevents compositor resampling from picking up transparent pixels between the highlighted candidate and the panel background. The dynamic color path is unchanged: colors still come from `~/.config/DankMaterialShell/firefox.css`, and the A/B theme slot reload strategy is preserved.
+
+If artifacts are still visible at 1.25x, prefer these safe adjustments in order:
+
+1. Reduce corner radius a little, rather than removing roundness.
+2. Increase panel/menu asset size and keep 9-slice margins away from antialiased corner edges.
+3. Avoid transparent or semi-transparent pixels on internal assets such as highlight and preedit.
+
 ## Notes
 
 The A/B theme slot approach avoids `fcitx5 -r`, so theme updates should not interrupt input method availability.

@@ -64,9 +64,10 @@ def run(*args):
     subprocess.run(args, check=True)
 
 
-def rounded_png(path, size, fill, stroke=None, stroke_width=0, radius=16):
+def rounded_png(path, size, fill, stroke=None, stroke_width=0, radius=16, background=None):
     width, height = size
-    cmd = ["magick", "-size", f"{width}x{height}", "xc:none", "-fill", fill]
+    canvas = f"xc:{background}" if background else "xc:none"
+    cmd = ["magick", "-size", f"{width}x{height}", canvas, "-fill", fill]
     if stroke and stroke_width:
         cmd += ["-stroke", stroke, "-strokewidth", str(stroke_width)]
     else:
@@ -83,10 +84,11 @@ def write_theme(theme_name, colors):
         if not target.exists():
             shutil.copyfile(Path("/usr/share/fcitx5/themes/default-dark") / asset, target)
 
-    rounded_png(theme_dir / "panel.png", (72, 52), colors["surface-container"], colors["outline-variant"], 1, 16)
-    rounded_png(theme_dir / "menu.png", (72, 52), colors["surface-container-high"], colors["outline-variant"], 1, 16)
-    rounded_png(theme_dir / "highlight.png", (48, 28), colors["primary-container"], None, 0, 12)
-    rounded_png(theme_dir / "preedit.png", (48, 28), colors["surface-container-highest"], None, 0, 12)
+    rounded_png(theme_dir / "panel.png", (96, 72), colors["surface-container"], colors["outline-variant"], 1, 18)
+    rounded_png(theme_dir / "menu.png", (96, 72), colors["surface-container-high"], colors["outline-variant"], 1, 18)
+    rounded_png(theme_dir / "highlight.png", (64, 36), colors["primary-container"], None, 0, 14, background=colors["surface-container"])
+    rounded_png(theme_dir / "menu-highlight.png", (64, 36), colors["primary-container"], None, 0, 14, background=colors["surface-container-high"])
+    rounded_png(theme_dir / "preedit.png", (64, 36), colors["surface-container-highest"], None, 0, 14, background=colors["surface-container"])
 
     (theme_dir / "theme.conf").write_text(f"""[Metadata]
 Name={theme_name}
@@ -122,20 +124,20 @@ BorderColor=#00000000
 BorderWidth=0
 
 [InputPanel/Background/Margin]
-Left=16
-Right=16
-Top=16
-Bottom=16
+Left=18
+Right=18
+Top=18
+Bottom=18
 
 [InputPanel/Highlight]
 Image=highlight.png
 Color={colors['primary-container']}
 
 [InputPanel/Highlight/Margin]
-Left=12
-Right=12
-Top=12
-Bottom=12
+Left=10
+Right=10
+Top=10
+Bottom=10
 
 [InputPanel/PrevPage]
 Image=prev.png
@@ -166,10 +168,10 @@ BorderColor=#00000000
 BorderWidth=0
 
 [Menu/Background/Margin]
-Left=16
-Right=16
-Top=16
-Bottom=16
+Left=18
+Right=18
+Top=18
+Bottom=18
 
 [Menu/ContentMargin]
 Left=8
@@ -184,14 +186,14 @@ Image=radio.png
 Image=arrow.png
 
 [Menu/Highlight]
-Image=highlight.png
+Image=menu-highlight.png
 Color={colors['primary-container']}
 
 [Menu/Highlight/Margin]
-Left=12
-Right=12
-Top=12
-Bottom=12
+Left=10
+Right=10
+Top=10
+Bottom=10
 
 [Menu/Separator]
 Color={colors['outline-variant']}
